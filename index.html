@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Sistem Absensi</title>
+
+    <!-- SUPABASE -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- LIBRARY UNTUK MEMBUAT FILE EXCEL -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a, #1e3a8a);
+            color: white;
+            padding: 30px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        /* HEADER */
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 38px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #cbd5e1;
+        }
+
+        /* DASHBOARD */
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.10);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        }
+
+        .card h2 {
+            font-size: 23px;
+            margin-bottom: 20px;
+        }
+
+        /* JAM */
+
+        .clock {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .date {
+            color: #cbd5e1;
+            margin-bottom: 25px;
+        }
+
+        /* FORM */
+
+        label {
+            display: block;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            outline: none;
+            font-size: 15px;
+            margin-bottom: 15px;
+        }
+
+        /* BUTTON */
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-masuk {
+            background: #22c55e;
+        }
+
+        .btn-masuk:hover {
+            background: #16a34a;
+        }
+
+        .btn-pulang {
+            background: #f59e0b;
+            margin-top: 12px;
+        }
+
+        .btn-pulang:hover {
+            background: #d97706;
+        }
+
+        .btn-reset {
+            background: #ef4444;
+            margin-top: 15px;
+        }
+
+        .btn-reset:hover {
+            background: #dc2626;
+        }
+
+        .btn-excel {
+            background: #16a34a;
+            margin-top: 15px;
+        }
+
+        .btn-excel:hover {
+            background: #15803d;
+        }
+
+        /* STATUS */
+
+        .status-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.20);
+            text-align: center;
+            color: #cbd5e1;
+            min-height: 55px;
+        }
+
+        .success {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        /* STATISTIK */
+
+        .info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.08);
+            padding: 20px 10px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .number {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .info-card p {
+            color: #cbd5e1;
+            font-size: 13px;
+        }
+
+        /* RIWAYAT */
+
+        .history {
+            margin-top: 20px;
+        }
+
+        .history h2 {
+            margin-bottom: 15px;
+        }
+
+        .filter-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .filter-area input {
+            margin-bottom: 0;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        th {
+            background: rgba(0,0,0,0.25);
+            padding: 13px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.10);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            background: rgba(34,197,94,0.2);
+            color: #4ade80;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .empty {
+            text-align: center;
+            color: #94a3b8;
+            padding: 25px;
+        }
+
+        .excel-info {
+            margin-top: 10px;
+            color: #cbd5e1;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 750px) {
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 30px;
+            }
+
+            .clock {
+                font-size: 34px;
+            }
+
+            .info {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-area {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+
+    <div class="header">
+
+        <h1>📋 Sistem Absensi</h1>
+
+        <p>
+            Absensi digital dengan pencatatan otomatis
+        </p>
+
+    </div>
+
+
+    <!-- DASHBOARD -->
+
+    <div class="dashboard">
+
+        <!-- ABSENSI -->
+
+        <div class="card">
+
+            <h2>🕐 Waktu Sekarang</h2>
+
+            <div
+                class="clock"
+                id="clock"
+            >
+                00:00:00
+            </div>
+
+            <div
+                class="date"
+                id="date"
+            >
+                Memuat tanggal...
+            </div>
+
+
+            <h2>👤 Absensi</h2>
+
+
+            <label for="nama">
+                Nama Lengkap
+            </label>
+
+            <input
+                type="text"
+                id="nama"
+                placeholder="Masukkan nama lengkap"
+                autocomplete="off"
+            >
+
+
+            <button
+                class="btn-masuk"
+                onclick="absenMasuk()"
+            >
+                ✅ ABSEN MASUK
+            </button>
+
+
+            <button
+                class="btn-pulang"
+                onclick="absenPulang()"
+            >
+                🏠 ABSEN PULANG
+            </button>
+
+
+            <div
+                class="status-box"
+                id="status"
+            >
+                Silakan masukkan nama untuk melakukan absensi.
+            </div>
+
+        </div>
+
+
+        <!-- STATISTIK -->
+
+        <div class="card">
+
+            <h2>📊 Statistik Absensi</h2>
+
+
+            <div class="info">
+
+                <div class="info-card">
+
+                    <div
+                        class="number"
+                        id="totalHadir"
+                    >
+                        0
+                    </div>
+
+                    <p>
+                        Total Hadir
+                    </p>
+
+                </div>
+
+
+                <div class="info-card">
+
+                    <div
+                        class="number"
+                        id="totalMasuk"
+                    >
+                        0
+                    </div>
+
+                    <p>
+                        Sudah Masuk
+                    </p>
+
+                </div>
+
+
+                <div class="info-card">
+
+                    <div
+                        class="number"
+                        id="totalPulang"
+                    >
+                        0
+                    </div>
+
+                    <p>
+                        Sudah Pulang
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- EXPORT -->
+
+            <div style="margin-top:30px;">
+
+                <h2>
+                    📊 Export Data
+                </h2>
+
+                <p class="excel-info">
+                    Download seluruh data absensi
+                    ke dalam format Microsoft Excel.
+                </p>
+
+
+                <button
+                    class="btn-excel"
+                    onclick="exportExcel()"
+                >
+                    📥 EXPORT KE EXCEL
+                </button>
+
+
+                <button
+                    class="btn-reset"
+                    onclick="resetData()"
+                >
+                    🗑️ HAPUS SEMUA DATA
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- RIWAYAT -->
+
+    <div class="card history">
+
+        <h2>
+            📋 Riwayat Absensi
+        </h2>
+
+
+        <!-- FILTER -->
+
+        <div class="filter-area">
+
+            <input
+                type="text"
+                id="searchNama"
+                placeholder="🔎 Cari nama..."
+                oninput="tampilkanData()"
+            >
+
+
+            <input
+                type="date"
+                id="filterTanggal"
+                onchange="tampilkanData()"
+            >
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            No
+                        </th>
+
+                        <th>
+                            Nama
+                        </th>
+
+                        <th>
+                            Tanggal
+                        </th>
+
+                        <th>
+                            Jam Masuk
+                        </th>
+
+                        <th>
+                            Jam Pulang
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody
+                    id="tabelAbsensi"
+                >
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <footer>
+        Sistem Absensi Digital © 2026
+    </footer>
+
+</div>
+
+
+<script>
+
+    /* =====================================
+       SUPABASE
+       ===================================== */
+
+    const SUPABASE_URL =
+        "https://dqluuacqvpszazbpdqke.supabase.co";
+
+    // Tempel PUBLISHABLE KEY dari Supabase > Settings > API Keys di sini.
+    // Jangan gunakan Secret key / service_role key.
+    const SUPABASE_PUBLISHABLE_KEY =
+        "sb_publishable_hv47VDBUVN6DgtT-N5TKDA_ArTpTWHr";
+
+    const supabaseClient =
+        window.supabase.createClient(
+            SUPABASE_URL,
+            SUPABASE_PUBLISHABLE_KEY
+        );
+
+
+    /* =====================================
+       DATA ABSENSI
+       ===================================== */
+
+    let dataAbsensi = [];
+
+
+    /* =====================================
+       KONVERSI DATA SUPABASE
+       ===================================== */
+
+    function ubahDataSupabase(item) {
+
+        return {
+            id: item.id,
+            nama: item.nama,
+            tanggal: item.tanggal,
+            jamMasuk: item.jam_masuk || "",
+            jamPulang: item.jam_pulang || "",
+            status: item.status || "Hadir"
+        };
+
+    }
+
+
+    /* =====================================
+       AMBIL DATA DARI SUPABASE
+       ===================================== */
+
+    async function muatDataDariSupabase() {
+
+        try {
+
+            const { data, error } =
+                await supabaseClient
+                    .from("absensi")
+                    .select("*")
+                    .order("tanggal", { ascending: true })
+                    .order("id", { ascending: true });
+
+            if (error) {
+                console.error(error);
+
+                tampilkanStatus(
+                    "❌ Gagal mengambil data dari database Supabase.",
+                    "warning"
+                );
+
+                return;
+            }
+
+            dataAbsensi =
+                (data || []).map(ubahDataSupabase);
+
+            tampilkanData();
+
+        } catch (error) {
+
+            console.error(error);
+
+            tampilkanStatus(
+                "❌ Tidak dapat terhubung ke Supabase.",
+                "warning"
+            );
+
+        }
+
+    }
+
+
+    /* =====================================
+       JAM REAL-TIME
+       ===================================== */
+
+    function updateClock() {
+
+        const sekarang = new Date();
+
+
+        const jam =
+            String(
+                sekarang.getHours()
+            ).padStart(2, "0");
+
+
+        const menit =
+            String(
+                sekarang.getMinutes()
+            ).padStart(2, "0");
+
+
+        const detik =
+            String(
+                sekarang.getSeconds()
+            ).padStart(2, "0");
+
+
+        document.getElementById("clock")
+            .textContent =
+            `${jam}:${menit}:${detik}`;
+
+
+        const hari = [
+
+            "Minggu",
+            "Senin",
+            "Selasa",
+            "Rabu",
+            "Kamis",
+            "Jumat",
+            "Sabtu"
+
+        ];
+
+
+        const bulan = [
+
+            "Januari",
+            "Februari",
+            "Maret",
+            "April",
+            "Mei",
+            "Juni",
+            "Juli",
+            "Agustus",
+            "September",
+            "Oktober",
+            "November",
+            "Desember"
+
+        ];
+
+
+        const namaHari =
+            hari[
+                sekarang.getDay()
+            ];
+
+
+        const tanggal =
+            sekarang.getDate();
+
+
+        const namaBulan =
+            bulan[
+                sekarang.getMonth()
+            ];
+
+
+        const tahun =
+            sekarang.getFullYear();
+
+
+        document.getElementById("date")
+            .textContent =
+            `${namaHari}, ${tanggal} ${namaBulan} ${tahun}`;
+
+    }
+
+
+    updateClock();
+
+    setInterval(
+        updateClock,
+        1000
+    );
+
+
+    /* =====================================
+       TANGGAL
+       ===================================== */
+
+    function getTanggal() {
+
+        const sekarang =
+            new Date();
+
+
+        const tahun =
+            sekarang.getFullYear();
+
+
+        const bulan =
+            String(
+                sekarang.getMonth() + 1
+            ).padStart(2, "0");
+
+
+        const tanggal =
+            String(
+                sekarang.getDate()
+            ).padStart(2, "0");
+
+
+        return `${tahun}-${bulan}-${tanggal}`;
+
+    }
+
+
+    /* =====================================
+       JAM
+       ===================================== */
+
+    function getJam() {
+
+        const sekarang =
+            new Date();
+
+
+        const jam =
+            String(
+                sekarang.getHours()
+            ).padStart(2, "0");
+
+
+        const menit =
+            String(
+                sekarang.getMinutes()
+            ).padStart(2, "0");
+
+
+        return `${jam}:${menit}`;
+
+    }
+
+
+    /* =====================================
+       SIMPAN DATA
+       ===================================== */
+
+    // Data sekarang disimpan langsung ke Supabase.
+    // Fungsi ini dipertahankan agar struktur program tetap rapi.
+    function simpanData() {
+        // Tidak lagi menggunakan localStorage.
+    }
+
+
+    /* =====================================
+       ABSEN MASUK
+       ===================================== */
+
+    async function absenMasuk() {
+
+        const inputNama =
+            document.getElementById("nama");
+
+        const nama =
+            inputNama.value.trim();
+
+        if (nama === "") {
+
+            alert(
+                "Silakan masukkan nama terlebih dahulu."
+            );
+
+            inputNama.focus();
+
+            return;
+        }
+
+        const tanggal =
+            getTanggal();
+
+        const jam =
+            getJam();
+
+        const dataHariIni =
+            dataAbsensi.find(
+                function(item) {
+
+                    return (
+                        item.nama.toLowerCase() ===
+                        nama.toLowerCase()
+                        &&
+                        item.tanggal ===
+                        tanggal
+                    );
+
+                }
+            );
+
+        if (dataHariIni) {
+
+            alert(
+                `${nama} sudah melakukan absen masuk hari ini.`
+            );
+
+            tampilkanStatus(
+                `⚠️ ${nama}<br>
+                 Sudah absen masuk hari ini.`,
+                "warning"
+            );
+
+            return;
+        }
+
+        const { data, error } =
+            await supabaseClient
+                .from("absensi")
+                .insert({
+                    nama: nama,
+                    tanggal: tanggal,
+                    jam_masuk: jam,
+                    jam_pulang: null,
+                    status: "Hadir"
+                })
+                .select()
+                .single();
+
+        if (error) {
+
+            console.error(error);
+
+            alert(
+                "Gagal menyimpan absensi ke Supabase.\n\n" +
+                error.message
+            );
+
+            tampilkanStatus(
+                "❌ Gagal menyimpan data ke database.",
+                "warning"
+            );
+
+            return;
+        }
+
+        dataAbsensi.push(
+            ubahDataSupabase(data)
+        );
+
+        tampilkanData();
+
+        tampilkanStatus(
+            `✅ <span class="success">
+                Absensi masuk berhasil!
+               </span>
+               <br><br>
+               ${nama}
+               <br>
+               Jam masuk: ${jam}`,
+            "success"
+        );
+
+        inputNama.value = "";
+
+    }
+
+
+    /* =====================================
+       ABSEN PULANG
+       ===================================== */
+
+    async function absenPulang() {
+
+        const inputNama =
+            document.getElementById("nama");
+
+        const nama =
+            inputNama.value.trim();
+
+        if (nama === "") {
+
+            alert(
+                "Masukkan nama untuk melakukan absen pulang."
+            );
+
+            inputNama.focus();
+
+            return;
+        }
+
+        const tanggal =
+            getTanggal();
+
+        const dataHariIni =
+            dataAbsensi.find(
+                function(item) {
+
+                    return (
+                        item.nama.toLowerCase() ===
+                        nama.toLowerCase()
+                        &&
+                        item.tanggal ===
+                        tanggal
+                    );
+
+                }
+            );
+
+        if (!dataHariIni) {
+
+            alert(
+                "Data absen masuk hari ini tidak ditemukan."
+            );
+
+            tampilkanStatus(
+                `⚠️ ${nama}<br>
+                 Silakan melakukan absen masuk terlebih dahulu.`,
+                "warning"
+            );
+
+            return;
+        }
+
+        if (dataHariIni.jamPulang !== "") {
+
+            alert(
+                `${nama} sudah melakukan absen pulang hari ini.`
+            );
+
+            tampilkanStatus(
+                `⚠️ ${nama}<br>
+                 Sudah absen pulang hari ini.`,
+                "warning"
+            );
+
+            return;
+        }
+
+        const jam =
+            getJam();
+
+        const { data, error } =
+            await supabaseClient
+                .from("absensi")
+                .update({
+                    jam_pulang: jam
+                })
+                .eq("id", dataHariIni.id)
+                .select()
+                .single();
+
+        if (error) {
+
+            console.error(error);
+
+            alert(
+                "Gagal menyimpan absen pulang ke Supabase.\n\n" +
+                error.message
+            );
+
+            tampilkanStatus(
+                "❌ Gagal memperbarui data di database.",
+                "warning"
+            );
+
+            return;
+        }
+
+        const index =
+            dataAbsensi.findIndex(
+                function(item) {
+                    return item.id === dataHariIni.id;
+                }
+            );
+
+        if (index !== -1) {
+            dataAbsensi[index] =
+                ubahDataSupabase(data);
+        }
+
+        tampilkanData();
+
+        tampilkanStatus(
+            `🏠 <span class="success">
+                Absen pulang berhasil!
+               </span>
+               <br><br>
+               ${nama}
+               <br>
+               Jam pulang: ${jam}`,
+            "success"
+        );
+
+        inputNama.value = "";
+
+    }
+
+
+    /* =====================================
+       STATUS
+       ===================================== */
+
+    function tampilkanStatus(
+        pesan,
+        jenis
+    ) {
+
+        document.getElementById(
+            "status"
+        ).innerHTML =
+            pesan;
+
+    }
+
+
+    /* =====================================
+       TAMPILKAN DATA
+       ===================================== */
+
+    function tampilkanData() {
+
+        const tabel =
+            document.getElementById(
+                "tabelAbsensi"
+            );
+
+
+        const search =
+            document.getElementById(
+                "searchNama"
+            ).value
+            .toLowerCase()
+            .trim();
+
+
+        const filterTanggal =
+            document.getElementById(
+                "filterTanggal"
+            ).value;
+
+
+        const dataFilter =
+            dataAbsensi.filter(
+                function(item) {
+
+                    const cocokNama =
+                        item.nama
+                            .toLowerCase()
+                            .includes(search);
+
+
+                    const cocokTanggal =
+                        filterTanggal === ""
+                        ||
+                        item.tanggal ===
+                        filterTanggal;
+
+
+                    return (
+                        cocokNama &&
+                        cocokTanggal
+                    );
+
+                }
+            );
+
+
+        tabel.innerHTML = "";
+
+
+        if (
+            dataFilter.length === 0
+        ) {
+
+            tabel.innerHTML =
+                `
+                <tr>
+
+                    <td
+                        colspan="6"
+                        class="empty"
+                    >
+                        Tidak ada data absensi.
+                    </td>
+
+                </tr>
+                `;
+
+        } else {
+
+            const dataUrut =
+                [...dataFilter]
+                .reverse();
+
+
+            dataUrut.forEach(
+                function(item, index) {
+
+                    const baris =
+                        document.createElement(
+                            "tr"
+                        );
+
+
+                    baris.innerHTML =
+                        `
+
+                        <td>
+                            ${index + 1}
+                        </td>
+
+                        <td>
+                            <strong>
+                                ${item.nama}
+                            </strong>
+                        </td>
+
+                        <td>
+                            ${ubahTanggal(
+                                item.tanggal
+                            )}
+                        </td>
+
+                        <td>
+                            ${item.jamMasuk}
+                        </td>
+
+                        <td>
+                            ${
+                                item.jamPulang
+                                ?
+                                item.jamPulang
+                                :
+                                "-"
+                            }
+                        </td>
+
+                        <td>
+
+                            <span class="badge">
+                                ${item.status}
+                            </span>
+
+                        </td>
+
+                        `;
+
+
+                    tabel.appendChild(
+                        baris
+                    );
+
+                }
+            );
+
+        }
+
+
+        updateStatistik();
+
+    }
+
+
+    /* =====================================
+       FORMAT TANGGAL
+       ===================================== */
+
+    function ubahTanggal(
+        tanggal
+    ) {
+
+        const bagian =
+            tanggal.split("-");
+
+
+        return (
+
+            bagian[2]
+            + "/" +
+            bagian[1]
+            + "/" +
+            bagian[0]
+
+        );
+
+    }
+
+
+    /* =====================================
+       STATISTIK
+       ===================================== */
+
+    function updateStatistik() {
+
+        const total =
+            dataAbsensi.length;
+
+
+        const totalMasuk =
+            dataAbsensi.filter(
+                function(item) {
+
+                    return (
+                        item.jamMasuk !== ""
+                    );
+
+                }
+            ).length;
+
+
+        const totalPulang =
+            dataAbsensi.filter(
+                function(item) {
+
+                    return (
+                        item.jamPulang !== ""
+                    );
+
+                }
+            ).length;
+
+
+        document.getElementById(
+            "totalHadir"
+        ).textContent =
+            total;
+
+
+        document.getElementById(
+            "totalMasuk"
+        ).textContent =
+            totalMasuk;
+
+
+        document.getElementById(
+            "totalPulang"
+        ).textContent =
+            totalPulang;
+
+    }
+
+
+    /* =====================================
+       EXPORT EXCEL
+       ===================================== */
+
+    function exportExcel() {
+
+        if (
+            dataAbsensi.length === 0
+        ) {
+
+            alert(
+                "Belum ada data absensi untuk diekspor."
+            );
+
+            return;
+        }
+
+
+        /* Ambil filter */
+
+        const search =
+            document.getElementById(
+                "searchNama"
+            ).value
+            .toLowerCase()
+            .trim();
+
+
+        const filterTanggal =
+            document.getElementById(
+                "filterTanggal"
+            ).value;
+
+
+        /* Filter data */
+
+        const dataExport =
+            dataAbsensi.filter(
+                function(item) {
+
+                    const cocokNama =
+                        item.nama
+                            .toLowerCase()
+                            .includes(search);
+
+
+                    const cocokTanggal =
+                        filterTanggal === ""
+                        ||
+                        item.tanggal ===
+                        filterTanggal;
+
+
+                    return (
+                        cocokNama &&
+                        cocokTanggal
+                    );
+
+                }
+            );
+
+
+        if (
+            dataExport.length === 0
+        ) {
+
+            alert(
+                "Tidak ada data yang sesuai dengan filter."
+            );
+
+            return;
+        }
+
+
+        /* Buat data untuk Excel */
+
+        const dataExcel =
+            dataExport.map(
+                function(item, index) {
+
+                    return {
+
+                        "No":
+                            index + 1,
+
+                        "Nama":
+                            item.nama,
+
+                        "Tanggal":
+                            ubahTanggal(
+                                item.tanggal
+                            ),
+
+                        "Jam Masuk":
+                            item.jamMasuk,
+
+                        "Jam Pulang":
+                            item.jamPulang
+                            || "-",
+
+                        "Status":
+                            item.status
+
+                    };
+
+                }
+            );
+
+
+        /* Buat worksheet */
+
+        const worksheet =
+            XLSX.utils.json_to_sheet(
+                dataExcel
+            );
+
+
+        /* Lebar kolom */
+
+        worksheet["!cols"] = [
+
+            { wch: 8 },
+
+            { wch: 25 },
+
+            { wch: 15 },
+
+            { wch: 15 },
+
+            { wch: 15 },
+
+            { wch: 15 }
+
+        ];
+
+
+        /* Buat workbook */
+
+        const workbook =
+            XLSX.utils.book_new();
+
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            worksheet,
+            "Data Absensi"
+        );
+
+
+        /* Nama file */
+
+        const sekarang =
+            new Date();
+
+
+        const tanggalFile =
+            String(
+                sekarang.getDate()
+            ).padStart(2, "0")
+            +
+            "-"
+            +
+            String(
+                sekarang.getMonth() + 1
+            ).padStart(2, "0")
+            +
+            "-"
+            +
+            sekarang.getFullYear();
+
+
+        const namaFile =
+            `Absensi_${tanggalFile}.xlsx`;
+
+
+        /* Download */
+
+        XLSX.writeFile(
+            workbook,
+            namaFile
+        );
+
+
+        alert(
+            `Excel berhasil dibuat!\n\n${namaFile}`
+        );
+
+    }
+
+
+    /* =====================================
+       RESET DATA
+       ===================================== */
+
+    async function resetData() {
+
+        if (
+            dataAbsensi.length === 0
+        ) {
+
+            alert(
+                "Belum ada data yang bisa dihapus."
+            );
+
+            return;
+        }
+
+        const yakin =
+            confirm(
+                "Apakah Anda yakin ingin menghapus SEMUA data absensi dari database?"
+            );
+
+        if (!yakin) {
+            return;
+        }
+
+        const { error } =
+            await supabaseClient
+                .from("absensi")
+                .delete()
+                .neq("id", 0);
+
+        if (error) {
+
+            console.error(error);
+
+            alert(
+                "Data gagal dihapus dari Supabase.\n\n" +
+                error.message +
+                "\n\nPastikan policy DELETE sudah dibuat di Supabase."
+            );
+
+            return;
+        }
+
+        dataAbsensi = [];
+
+        tampilkanData();
+
+        tampilkanStatus(
+            "Semua data absensi telah dihapus dari database.",
+            "warning"
+        );
+
+    }
+
+
+    /* =====================================
+       JALANKAN SAAT HALAMAN DIBUKA
+       ===================================== */
+
+    // Ambil data online saat halaman dibuka.
+    muatDataDariSupabase();
+
+</script>
+
+</body>
+</html>
